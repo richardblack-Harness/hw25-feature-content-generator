@@ -1,7 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import fs from 'fs/promises';
-import { BUCKET_NAME } from '@/lib/storage';
+import { bucket } from '@/lib/storage';
 
 const storage = new Storage();
 const DEFAULT_PREFIX = 'default';
@@ -17,14 +17,13 @@ interface Template {
 }
 
 async function readJson(filePath: string): Promise<Template> {
-  const file = storage.bucket(BUCKET_NAME).file(filePath);
+  const file = bucket.file(filePath);
   const [contents] = await file.download();
   const parsed = JSON.parse(contents.toString('utf-8'));
   return parsed;
 }
 
 export async function generateLatestTemplates(): Promise<void> {
-  const bucket = storage.bucket(BUCKET_NAME);
   const [defaultFiles] = await bucket.getFiles({ prefix: `${DEFAULT_PREFIX}/` });
   const [updatedFiles] = await bucket.getFiles({ prefix: `${UPDATED_PREFIX}/` });
 

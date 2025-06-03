@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { storage, BUCKET_NAME } from '@/lib/storage';
+import { storage, bucket } from '@/lib/storage';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -14,7 +14,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const filePath = `teams/${submission.team.id}/submission.json`;
-    const bucket = storage.bucket(BUCKET_NAME);
     const file = bucket.file(filePath);
 
     await file.save(JSON.stringify(submission, null, 2), {

@@ -26,6 +26,7 @@ export default function SubmissionsPage() {
     const fetchSubmissions = async () => {
       const res = await fetch("/api/submissions");
       const data = await res.json();
+      const sortedSubmissions = data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setSubmissions(data);
     };
 

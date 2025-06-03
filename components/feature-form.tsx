@@ -182,7 +182,7 @@ export default function FeatureForm() {
               <Input id="feature-name" placeholder="Enter feature name" className="mt-1 bg-gray-800 border-gray-700" value={featureName} onChange={(e) => setFeatureName(e.target.value)} required />
             </div>
             <div>
-              <Label htmlFor="feature-description">Feature Description OOGA BOOGA*</Label>
+              <Label htmlFor="feature-description">Feature Description*</Label>
               <Textarea id="feature-description" placeholder="Describe the feature and its benefits" className="mt-1 bg-gray-800 border-gray-700 min-h-[100px]" value={featureDescription} onChange={(e) => setFeatureDescription(e.target.value)} required />
             </div>
             <div>

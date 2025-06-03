@@ -27,6 +27,7 @@ export default function PromptTemplates({
     prompt: "",
   });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -85,36 +86,52 @@ export default function PromptTemplates({
     }
   };
 
-  const handleAddNewTemplate = async () => {
-    const { name, description, prompt } = newTemplate;
-    if (!name || !prompt) return;
+const handleAddNewTemplate = async () => {
+  if (isAddingTemplate) return; // Prevent multiple submissions
 
-    const id = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+  setIsAddingTemplate(true);
 
-    await fetch(`/api/prompts/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, prompt }),
-    });
+  const { name, description, prompt } = newTemplate;
+  if (!name || !prompt) {
+    setIsAddingTemplate(false);
+    return;
+  }
 
-    const IconComponent = templateMeta[id]?.icon ?? FileText;
+  const id = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-    const newEntry: PromptTemplate = {
-      id,
-      name,
-      description,
-      icon: <IconComponent className="h-5 w-5" />,
-      color: templateMeta[id]?.color ?? "bg-gray-500/10 text-gray-500",
-      isCustom: true,
-    };
+  // Check if a template with the same name already exists
+  if (templates.some((t) => t.id === id)) {
+    alert("A template with this name already exists.");
+    setIsAddingTemplate(false);
+    return;
+  }
 
-    setTemplates((prev) => [...prev, newEntry]);
-    setNewTemplate({ name: "", description: "", prompt: "" });
-    setShowAddForm(false);
+  await fetch(`/api/prompts/${id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description, prompt }),
+  });
+
+  const IconComponent = templateMeta[id]?.icon ?? FileText;
+
+  const newEntry: PromptTemplate = {
+    id,
+    name,
+    description,
+    icon: <IconComponent className="h-5 w-5" />,
+    color: templateMeta[id]?.color ?? "bg-gray-500/10 text-gray-500",
+    isCustom: true,
   };
+
+  setTemplates((prev) => [...prev, newEntry]);
+  setNewTemplate({ name: "", description: "", prompt: "" });
+  setShowAddForm(false);
+
+  setIsAddingTemplate(false); // Reset the flag after completion
+};
 
   return (
     <div>

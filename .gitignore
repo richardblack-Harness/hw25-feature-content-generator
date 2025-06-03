@@ -5,3 +5,4 @@ node_modules
 .env.github
 secrets/credentials.json
 .DS_Store
+.vercel

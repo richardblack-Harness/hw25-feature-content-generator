@@ -1,0 +1,6 @@
+{
+  "type": "release_notes",
+  "name": "Release Notes",
+  "description": "Creates a developer-facing changelog entry for a new feature, formatted for structured docs or internal updates. Includes use cases, behavior, and gotchas.",
+  "prompt": "📦 **Release Note Entry**\n\nYou're writing a developer-facing release note for a new feature in {company_name}. The goal is to explain what changed, how it helps, and what developers need to know.\n\nUse the following format:\n\n---\n\n### [New Feature] {title}: Version {version}\n→ [Docs](https://developer.{site_url}) | [Tutorial](link TBD) | [Video](link TBD)\n\n{one_liner_summary}\n\n**Use Cases**  \n{use_case}\n\n**How it Works**  \n{description}\n\nOptionally include a bullet list or paragraph of key points on how users might interact with this feature (e.g. API usage, UI flow, or SDK integration tips). Mention any environment variables, settings, or expected behaviors.\n\n**Gotchas**  \n{gotchas}\n\nIf applicable, suggest workarounds or reference relevant documentation."
+}

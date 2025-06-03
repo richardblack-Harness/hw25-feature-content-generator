@@ -1,0 +1,29 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { storage, BUCKET_NAME } from '@/lib/storage';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const submission = req.body;
+
+    if (!submission?.team?.id) {
+      return res.status(400).json({ error: 'Missing team ID in submission' });
+    }
+
+    const filePath = `teams/${submission.team.id}/submission.json`;
+    const bucket = storage.bucket(BUCKET_NAME);
+    const file = bucket.file(filePath);
+
+    await file.save(JSON.stringify(submission, null, 2), {
+      contentType: 'application/json',
+    });
+
+    return res.status(200).json({ message: 'Saved successfully', path: filePath });
+  } catch (err) {
+    console.error('Error saving submission:', err);
+    return res.status(500).json({ error: 'Failed to save submission' });
+  }
+}

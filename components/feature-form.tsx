@@ -47,11 +47,21 @@ export default function FeatureForm() {
 
   const validateInputs = () => {
     const errors: { [key: string]: string } = {};
-    
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(teamEmails)) {
-      errors.teamEmails = "Please enter a valid email address for team emails.";
+
+    // If feature flag enabled is set to true then a feature flag must be provided. Additionally, the feature flag must be in all caps and one word, no spaces.
+    if (featureFlagEnabled && !featureFlag.trim()) {
+      errors.featureFlag = "Please provide a feature flag.";
     }
+
+    if (featureFlag && !/^[A-Z_]+$/.test(featureFlag)) {
+      errors.featureFlag = "Feature flag must be in all caps and one word, no spaces.";
+    }
+    
+    // The email can be empty, but if it isn't, it must be a valid email address
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (teamEmails.trim() && !teamEmails.match(emailRegex)) {
+      errors.teamEmails = "Please enter a valid email address for team emails.";
+    } 
     
     return errors;
   };

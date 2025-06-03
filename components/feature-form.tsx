@@ -45,9 +45,26 @@ export default function FeatureForm() {
     setTeamId(uuidv4());
   }, []);
 
+  const validateInputs = () => {
+    const errors: { [key: string]: string } = {};
+    
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(teamEmails)) {
+      errors.teamEmails = "Please enter a valid email address for team emails.";
+    }
+    
+    return errors;
+  };
+
   const handleGenerateContent = async () => {
     if (!featureName.trim() || !featureDescription.trim() || selectedTemplates.length === 0) {
       alert("Please fill in the required fields: Feature Name, Description, and at least one template.");
+      return;
+    }
+
+    const errors = validateInputs();
+    if (Object.keys(errors).length > 0) {
+      alert("Please fix the following errors:\n" + Object.values(errors).join("\n"));
       return;
     }
 

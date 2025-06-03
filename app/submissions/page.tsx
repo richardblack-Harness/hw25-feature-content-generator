@@ -23,15 +23,15 @@ export default function SubmissionsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   useEffect(() => {
-    const fetchSubmissions = async () => {
-      const res = await fetch("/api/submissions");
-      const data = await res.json();
-      const sortedSubmissions = data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setSubmissions(data);
-    };
-
     fetchSubmissions();
   }, []);
+
+  const fetchSubmissions = async () => {
+    const res = await fetch("/api/submissions");
+    const data = await res.json();
+    data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setSubmissions(data);
+  };
 
   const parseGeneratedOutput = (
     output: string,
@@ -88,6 +88,24 @@ export default function SubmissionsPage() {
     saveAs(blob, zipName);
   };
 
+  const handleDeleteFiles = async (id: string) => {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this submission?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/submissions/${id}`, {
+        method: "DELETE",
+      });
+
+      fetchSubmissions();      
+    } 
+    catch (err) {
+      console.error("Failed to delete submission:", err);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -104,6 +122,13 @@ export default function SubmissionsPage() {
                   <h2 className="text-xl font-semibold">{feature.name}</h2>
                   <p className="text-sm text-gray-400">Submitted on {dateStr}</p>
                 </div>
+                <Button
+                  variant="ghost"
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => handleDeleteFiles(id)}
+                >
+                  Delete Submission
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

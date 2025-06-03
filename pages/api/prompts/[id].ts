@@ -1,6 +1,6 @@
 // pages/api/prompts/[id].ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { storage, BUCKET_NAME } from "@/lib/storage";
+import { storage, bucket } from "@/lib/storage";
 import { generateLatestTemplates } from "@/scripts/generateLatestTemplates";
 
 const DEFAULT_PREFIX = "default";
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const content = JSON.stringify({ name, description, prompt }, null, 2);
 
-      await storage.bucket(BUCKET_NAME).file(updatedFile).save(content, {
+      await bucket.file(updatedFile).save(content, {
         contentType: "application/json",
       });
 
@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "DELETE") {
-      await storage.bucket(BUCKET_NAME).file(updatedFile).delete({ ignoreNotFound: true });
+      await bucket.file(updatedFile).delete({ ignoreNotFound: true });
 
       await generateLatestTemplates();
 
@@ -57,13 +57,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function readJson(filePath: string): Promise<{ name: string; description?: string; prompt: string }> {
-  const file = storage.bucket(BUCKET_NAME).file(filePath);
+  const file = bucket.file(filePath);
   const [contents] = await file.download();
   return JSON.parse(contents.toString("utf-8"));
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
-  const file = storage.bucket(BUCKET_NAME).file(filePath);
+  const file = bucket.file(filePath);
   const [exists] = await file.exists();
   return exists;
 }

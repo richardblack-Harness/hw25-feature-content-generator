@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { storage, BUCKET_NAME } from "@/lib/storage";
+import { storage, bucket } from "@/lib/storage";
 
 const folderPath = "teams/";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const [files] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: folderPath });
+    const [files] = await bucket.getFiles({ prefix: folderPath });
 
     const submissionFiles = files.filter(file => file.name.endsWith("submission.json"));
 

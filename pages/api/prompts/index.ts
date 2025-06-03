@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { storage, BUCKET_NAME } from "@/lib/storage";
+import { storage, bucket } from "@/lib/storage";
 
 const DEFAULT_PREFIX = "default";
 const UPDATED_PREFIX = "updated";
@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // ✅ Try using precompiled latest-templates.json
-    const latestFile = storage.bucket(BUCKET_NAME).file(LATEST_TEMPLATES_FILE);
+    const latestFile = bucket.file(LATEST_TEMPLATES_FILE);
     const [exists] = await latestFile.exists();
 
     if (exists) {
@@ -25,8 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("⚠️ Falling back to runtime file merge...");
 
     // ❌ Fallback: runtime merge of default + updated
-    const [defaultFiles] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: DEFAULT_PREFIX });
-    const [updatedFiles] = await storage.bucket(BUCKET_NAME).getFiles({ prefix: UPDATED_PREFIX });
+    const [defaultFiles] = await bucket.getFiles({ prefix: DEFAULT_PREFIX });
+    const [updatedFiles] = await bucket.getFiles({ prefix: UPDATED_PREFIX });
 
     const mergedMap: Record<string, any> = {};
 

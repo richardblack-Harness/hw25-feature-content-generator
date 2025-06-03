@@ -37,24 +37,44 @@ export default function SubmissionsPage() {
     templates: Submission["selectedTemplates"],
     featureName: string
   ) => {
-    const sections = output.split("---");
+    const sections = output
+      .split(/^#\s+/gm)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  
     const files: { name: string; content: string; title: string }[] = [];
-
-    sections.forEach((section) => {
-      const titleMatch = section.match(/^# (.+)/m);
-      const title = titleMatch ? titleMatch[1].trim() : "unknown";
-      const template = templates.find((t) =>
-        title.toLowerCase().includes(t.name.toLowerCase())
+  
+    const templateMap = new Map(
+      templates.map((t) => [t.name.toLowerCase(), { id: t.id, name: t.name }])
+    );
+  
+    for (const raw of sections) {
+      const [titleLine, ...rest] = raw.split("\n");
+      const titleText = titleLine.trim();
+      const body = rest.join("\n").trim();
+  
+      let matched = [...templateMap.entries()].find(([key]) =>
+        titleText.toLowerCase() === key
       );
-      const templateId = template?.id || "unknown";
+  
+      if (!matched) {
+        matched = [...templateMap.entries()].find(([key]) =>
+          titleText.toLowerCase().includes(key)
+        );
+      }
+  
+      const templateId = matched?.[1]?.id || `unknown-${Date.now()}`;
+      const templateName = matched?.[1]?.name || titleText || "unknown";
+  
       const filename = `${featureName.toLowerCase().replace(/\s+/g, "-")}_${templateId}.md`;
+  
       files.push({
         name: filename,
-        content: section.trim(),
-        title: template?.name || "unknown",
+        content: `# ${titleText}\n\n${body}`,
+        title: templateName,
       });
-    });
-
+    }
+  
     return files;
   };
 

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "Harness Feature Content Generator",
   description: "Generate content for upcoming Harness features",
   generator: "v0.dev",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

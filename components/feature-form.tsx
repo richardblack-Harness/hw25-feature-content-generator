@@ -29,6 +29,7 @@ export default function FeatureForm() {
   const [keyBenefits, setKeyBenefits] = useState("");
   const [featureFlag, setFeatureFlag] = useState("");
   const [releaseVersion, setReleaseVersion] = useState("");
+  const [releaseDate, setReleaseDate] = useState("");
   const [realWorldUseCase, setRealWorldUseCase] = useState("");
   const [competitorResources, setCompetitorResources] = useState("");
   const [demoVideo, setDemoVideo] = useState<File | null>(null);
@@ -79,6 +80,7 @@ export default function FeatureForm() {
         Key Benefits: ${keyBenefits || "Not specified"}
         Feature Flag: ${featureFlag || "Not specified"}
         Release Version: ${releaseVersion || "Not specified"}
+        Release Date: ${releaseDate || "Not specified"}
         Real-world Use Case: ${realWorldUseCase || "Not specified"}
         Competitor Resources: ${competitorResources || "Not specified"}
         Known Limitations: ${knownLimitations || "None provided"}
@@ -120,6 +122,7 @@ export default function FeatureForm() {
           keyBenefits,
           featureFlag,
           releaseVersion,
+          releaseDate,
           realWorldUseCase,
           competitorResources,
           knownLimitations,
@@ -149,6 +152,7 @@ export default function FeatureForm() {
       setKeyBenefits("");
       setFeatureFlag("");
       setReleaseVersion("");
+      setReleaseDate("");
       setRealWorldUseCase("");
       setCompetitorResources("");
       setDemoVideo(null);
@@ -239,26 +243,39 @@ export default function FeatureForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="feature-flag">Feature Flag</Label>
-                  <Input
-                    id="feature-flag"
-                    placeholder="Enter feature flag name or ID"
-                    className="mt-1 bg-gray-800 border-gray-700"
-                    value={featureFlag}
-                    onChange={(e) => setFeatureFlag(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="release-version">Release Version</Label>
-                  <Input
-                    id="release-version"
-                    placeholder="e.g. 1.0.0"
-                    className="mt-1 bg-gray-800 border-gray-700"
-                    value={releaseVersion}
-                    onChange={(e) => setReleaseVersion(e.target.value)}
-                  />
+              <div className="space-y-8">
+                {/* Your existing cards omitted for brevity */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="feature-flag">Feature Flag</Label>
+                    <Input
+                      id="feature-flag"
+                      placeholder="Enter feature flag name or ID"
+                      className="mt-1 bg-gray-800 border-gray-700"
+                      value={featureFlag}
+                      onChange={(e) => setFeatureFlag(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="release-version">Release Version</Label>
+                    <Input
+                      id="release-version"
+                      placeholder="e.g. 1.0.0"
+                      className="mt-1 bg-gray-800 border-gray-700"
+                      value={releaseVersion}
+                      onChange={(e) => setReleaseVersion(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="release-date">Release Date</Label>
+                    <Input
+                      id="release-date"
+                      type="date"
+                      className="mt-1 bg-gray-800 border-gray-700"
+                      value={releaseDate}
+                      onChange={(e) => setReleaseDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -321,8 +338,8 @@ export default function FeatureForm() {
             </div>
           </CardContent>
         </Card>
-        </div>
-        <div>
+      </div>
+      <div>
         <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-6">
             <Tabs defaultValue="templates">

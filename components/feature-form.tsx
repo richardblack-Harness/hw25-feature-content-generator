@@ -18,6 +18,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const Confetti = dynamic(() => import("react-confetti"), {
+  ssr: false,
+});
 
 export default function FeatureForm() {
   const [featureName, setFeatureName] = useState("");
@@ -44,6 +50,8 @@ export default function FeatureForm() {
   const teamIdRef = useRef<string>(uuidv4());
   const router = useRouter();
   const [isBeta, setIsBeta] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Automatically enable feature flag if Beta is selected
@@ -176,8 +184,23 @@ export default function FeatureForm() {
     }
   };
 
+  const handleFeedback = (contentId: string, isPositive: boolean) => {
+    setFeedbackStatus(prev => ({
+      ...prev,
+      [contentId]: isPositive
+    }));
+  };
+
   return (
     <div className="space-y-8 max-w-screen-xl mx-auto w-full px-4">
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
+      )}
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-6">
           <h2 className="text-2xl font-bold mb-6">Feature Details</h2>
@@ -373,31 +396,49 @@ export default function FeatureForm() {
         </CardContent>
       </Card>
 
-      {generatedContent.length > 0 && ( // Check if there's actually content
-        <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
+      {generatedContent.length > 0 && (
+        <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-6">
             <h2 className="text-2xl font-bold mb-4">Generated Content</h2>
-            {generatedContent.map((item, index) => (
-              <div key={index} className="mb-6">
-                {" "}
-                {/* Add a key for each item in the list */}
-                <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-                <div className="bg-gray-800 p-4 rounded-md whitespace-pre-wrap">
-                  {item.output}
+            {generatedContent.map((item, index) => {
+              const contentId = `${item.name}-${index}`;
+              return (
+                <div key={contentId} className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-xl font-semibold">{item.name}</h3>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => handleFeedback(contentId, true)}
+                        className={`p-2 rounded-full transition-colors ${
+                          feedbackStatus[contentId] === true
+                            ? "bg-green-600 text-white"
+                            : "hover:bg-gray-700"
+                        }`}
+                        disabled={feedbackStatus[contentId] !== undefined}
+                        title="Thumbs Up"
+                      >
+                        <ThumbsUp className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleFeedback(contentId, false)}
+                        className={`p-2 rounded-full transition-colors ${
+                          feedbackStatus[contentId] === false
+                            ? "bg-red-600 text-white"
+                            : "hover:bg-gray-700"
+                        }`}
+                        disabled={feedbackStatus[contentId] !== undefined}
+                        title="Thumbs Down"
+                      >
+                        <ThumbsDown className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 p-4 rounded-md whitespace-pre-wrap">
+                    {item.output}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div className="flex justify-end mt-4">
-              {/* Your Copy and Save buttons can remain here, or you might want them per item */}
-              <Button variant="outline" className="mr-2">
-                Copy All
-              </Button>{" "}
-              {/* Example */}
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Save All
-              </Button>{" "}
-              {/* Example */}
-            </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}

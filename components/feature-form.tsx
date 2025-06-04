@@ -39,8 +39,6 @@ export default function FeatureForm() {
     { name: string; output: string }[]
   >([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [teamName, setTeamName] = useState("");
-  const [teamEmails, setTeamEmails] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const teamIdRef = useRef<string>(uuidv4());
@@ -52,47 +50,6 @@ export default function FeatureForm() {
     setFeatureFlagEnabled(isBeta);
   }, [isBeta]);
 
-  useEffect(() => {
-    const newErrors: typeof errors = { ...errors };
-
-    if (teamName.trim() === "") {
-      newErrors.teamName = "Team name is required.";
-    } else {
-      delete newErrors.teamName;
-    }
-
-    const emails = teamEmails
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (emails.length === 0) {
-      newErrors.teamEmails = "At least one valid email address is required.";
-    } else if (!emails.every((e) => emailRegex.test(e))) {
-      newErrors.teamEmails = "One or more email addresses are invalid.";
-    } else {
-      delete newErrors.teamEmails;
-    }
-
-    setErrors(newErrors);
-  }, [teamName, teamEmails]);
-
-  const validateEmailField = (value: string) => {
-    if (!value.trim()) return "At least one email address is required.";
-    const emails = value.split(",").map((e) => e.trim());
-    const invalids = emails.filter(
-      (email) => email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    );
-    return invalids.length > 0
-      ? `Invalid email${invalids.length > 1 ? "s" : ""}: ${invalids.join(", ")}`
-      : "";
-  };
-
-  const validateTeamNameField = (value: string) => {
-    return !value.trim() ? "Team name is required." : "";
-  };
-
   const validateInputs = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -103,12 +60,6 @@ export default function FeatureForm() {
       newErrors.featureFlag =
         "Feature flag must be in all caps and one word, no spaces.";
     }
-
-    const emailError = validateEmailField(teamEmails);
-    if (emailError) newErrors.teamEmails = emailError;
-
-    const teamNameError = validateTeamNameField(teamName);
-    if (teamNameError) newErrors.teamName = teamNameError;
 
     return newErrors;
   };
@@ -181,11 +132,6 @@ export default function FeatureForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          team: {
-            id: teamIdRef.current,
-            name: teamName,
-            emails: teamEmails.split(",").map((e) => e.trim()),
-          },
           feature: {
             name: featureName,
             description: featureDescription,
@@ -219,8 +165,6 @@ export default function FeatureForm() {
       setKnownLimitations("");
       setContextPrompt("");
       setSelectedTemplates([]);
-      setTeamName("");
-      setTeamEmails("");
       setGeneratedContent([]);
     } catch (err) {
       console.error(err);
@@ -234,40 +178,6 @@ export default function FeatureForm() {
 
   return (
     <div className="space-y-8 max-w-screen-xl mx-auto w-full px-4">
-      <Card className="bg-gray-900 border-gray-800">
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Team Details</h2>
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="team-name">Team Name *</Label>
-              <Input
-                id="team-name"
-                placeholder="e.g. DevRel Team"
-                className="mt-1 bg-gray-800 border-gray-700"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-              />
-              {errors.teamName && (
-                <p className="text-sm text-red-500 mt-1">{errors.teamName}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="team-emails">Team Emails *</Label>
-              <Textarea
-                id="team-emails"
-                placeholder="Comma-separated email addresses"
-                className="mt-1 bg-gray-800 border-gray-700 min-h-[60px]"
-                value={teamEmails}
-                onChange={(e) => setTeamEmails(e.target.value)}
-              />
-              {errors.teamEmails && (
-                <p className="text-sm text-red-500 mt-1">{errors.teamEmails}</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-6">
           <h2 className="text-2xl font-bold mb-6">Feature Details</h2>
@@ -286,13 +196,13 @@ export default function FeatureForm() {
               </div>
 
               <div className="w-full md:w-[100px]">
-                <Label htmlFor="is-beta" className="block mb-1 text-sm">
+                <Label htmlFor="is-beta" className="block m-1 text-sm">
                   Beta?
                 </Label>
                 <div className="relative">
                   <select
                     id="is-beta"
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 appearance-none"
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-md px-3 py-2 h-10 appearance-none"
                     value={isBeta ? "yes" : "no"}
                     onChange={(e) => setIsBeta(e.target.value === "yes")}
                   >

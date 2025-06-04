@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +49,10 @@ export default function TemplatesPage() {
     description: "",
     prompt: "",
   });
+  const [isPromptAreaActive, setIsPromptAreaActive] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  
+  const promptWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -77,6 +81,35 @@ export default function TemplatesPage() {
 
     fetchTemplates();
   }, []);
+
+  // New useEffect for handling focus on the prompt wrapper
+  useEffect(() => {
+    const wrapper = promptWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleFocusIn = () => {
+      console.log('[TemplatesPage Focus] >>> Prompt area wrapper FOCUSED <<<'); // Log added
+      setIsPromptAreaActive(true);
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      // Check if the new focused element is still within the wrapper
+      if (!wrapper.contains(event.relatedTarget as Node)) {
+        console.log('[TemplatesPage Focus] <<< Prompt area wrapper BLURRED (focus left wrapper) <<<'); // Log added
+        setIsPromptAreaActive(false);
+      } else {
+        console.log('[TemplatesPage Focus] --- Prompt area wrapper focus changed within wrapper ---'); // Log added
+      }
+    };
+
+    wrapper.addEventListener('focusin', handleFocusIn);
+    wrapper.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      wrapper.removeEventListener('focusin', handleFocusIn);
+      wrapper.removeEventListener('focusout', handleFocusOut);
+    };
+  }, [showAddForm]); // Re-run when showAddForm changes, so ref is current
 
   const toggleEdit = (id: string) => {
     setTemplates((prev) =>
@@ -245,6 +278,32 @@ export default function TemplatesPage() {
     }
   };
 
+  const handleGenerateNewTemplatePrompt = async () => {
+    if (!newTemplate.name || !newTemplate.description) {
+      alert("Please enter a template name and description first to generate a prompt.");
+      return;
+    }
+    setIsGeneratingPrompt(true);
+    try {
+      const res = await fetch("/api/generate-template-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTemplate.name, description: newTemplate.description }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Failed to generate prompt and parse error." }));
+        throw new Error(errorData.error || "Failed to generate prompt");
+      }
+      const data = await res.json();
+      setNewTemplate(prev => ({ ...prev, prompt: data.prompt }));
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+      alert(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const customTemplates = templates.filter((t) => !DEFAULT_IDS.includes(t.id));
   const defaultTemplates = templates.filter((t) => DEFAULT_IDS.includes(t.id));
 
@@ -278,18 +337,18 @@ export default function TemplatesPage() {
             )}
             {!DEFAULT_IDS.includes(template.id) && (
               <Button
-                variant="ghost"
-                className="text-red-500 hover:text-red-700"
-                onClick={() => handleDeleteTemplate(template.id)}
-                title="Delete Template"
-                disabled={deletingId === template.id}
-              >
-                <Trash2Icon
-                  className={cn("h-4 w-4", {
-                    "animate-pulse": deletingId === template.id,
-                  })}
-                />
-              </Button>
+              variant="ghost"
+              className="text-red-500 hover:text-red-700"
+              onClick={() => handleDeleteTemplate(template.id)}
+              title="Delete Template"
+              disabled={deletingId === template.id}
+            >
+              <Trash2Icon
+                className={cn("h-4 w-4", {
+                  "animate-pulse": deletingId === template.id,
+                })}
+              />
+            </Button>
             )}
           </div>
         </div>
@@ -365,14 +424,30 @@ export default function TemplatesPage() {
                   })
                 }
               />
-              <Textarea
-                placeholder="Prompt content"
-                className="bg-gray-800 border-gray-700 min-h-[100px]"
-                value={newTemplate.prompt}
-                onChange={(e) =>
-                  setNewTemplate({ ...newTemplate, prompt: e.target.value })
-                }
-              />
+              {/* Wrapper for Textarea and Generate Prompt button */}
+              <div className="relative" ref={promptWrapperRef}>
+                <Textarea
+                  placeholder="Prompt content"
+                  className="bg-gray-800 border-gray-700 min-h-[100px] pr-32" // Added pr-32 for button space
+                  value={newTemplate.prompt}
+                  onChange={(e) =>
+                    setNewTemplate({ ...newTemplate, prompt: e.target.value })
+                  }
+                />
+                {isPromptAreaActive && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 text-xs border border-gray-700 bg-gray-800 hover:bg-gray-700"
+                    onClick={handleGenerateNewTemplatePrompt}
+                    disabled={isGeneratingPrompt}
+                    onMouseDown={(e) => e.preventDefault()} 
+                    type="button"
+                  >
+                    {isGeneratingPrompt ? "Generating..." : "Generate Prompt"}
+                  </Button>
+                )}
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"

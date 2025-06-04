@@ -1,12 +1,9 @@
 "use client";
 
-import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { templateMeta } from "@/data/icons";
 import { FileText, Plus } from "lucide-react";
 import type { PromptTemplate } from "@/types/prompt";
@@ -28,6 +25,78 @@ export default function PromptTemplates({
   });
   const [showAddForm, setShowAddForm] = useState(false);
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+
+  // useEffect to log showAddForm changes
+  useEffect(() => {
+    console.log(`[useEffect Check] showAddForm is now: ${showAddForm}`);
+  }, [showAddForm]);
+
+  const promptWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const wrapper = promptWrapperRef.current;
+      console.log('[Debug] Inside requestAnimationFrame. promptWrapperRef.current:', wrapper);
+      if (!wrapper) {
+        console.error('[Debug] promptWrapperRef.current is null or undefined inside requestAnimationFrame. Event listeners NOT attached.');
+        return;
+      }
+  
+      const handleFocusIn = () => {
+        console.log("🔥 [Wrapper Effect] Focusin fired on wrapper div");
+        setIsEditingPrompt(true);
+      };
+  
+      const handleFocusOut = (e: FocusEvent) => {
+        if (!wrapper.contains(e.relatedTarget as Node)) {
+          console.log("❄️ [Wrapper Effect] Focusout fired - focus left wrapper div");
+          setIsEditingPrompt(false);
+        } else {
+          console.log("🔄 [Wrapper Effect] Focusout fired - focus moved within wrapper div");
+        }
+      };
+  
+      wrapper.addEventListener("focusin", handleFocusIn);
+      wrapper.addEventListener("focusout", handleFocusOut);
+  
+      return () => {
+        if (wrapper) { // Check again in cleanup
+            wrapper.removeEventListener("focusin", handleFocusIn);
+            wrapper.removeEventListener("focusout", handleFocusOut);
+        }
+      };
+    });
+  }, []);
+  
+  useEffect(() => {
+    const wrapper = promptWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleFocusIn = () => {
+      setIsEditingPrompt(true);
+      console.log('[EFFECT] Wrapper focusin - isEditingPrompt: true');
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      // Check if focus is still within the wrapper (e.g., moved to the button)
+      if (!wrapper.contains(e.relatedTarget as Node)) {
+        setIsEditingPrompt(false);
+        console.log('[EFFECT] Wrapper focusout - isEditingPrompt: false (focus left wrapper)');
+      } else {
+        console.log('[EFFECT] Wrapper focusout - focus moved within wrapper');
+      }
+    };
+
+    wrapper.addEventListener("focusin", handleFocusIn);
+    wrapper.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      wrapper.removeEventListener("focusin", handleFocusIn);
+      wrapper.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -37,7 +106,6 @@ export default function PromptTemplates({
 
         const enrichedTemplates = data.map((t: any) => {
           let color = "bg-gray-500/10 text-gray-500";
-        
           switch (t.id) {
             case "announcement":
               color = "bg-green-500/10 text-green-500";
@@ -58,9 +126,9 @@ export default function PromptTemplates({
               color = "bg-sky-500/10 text-sky-500";
               break;
           }
-        
+
           const IconComponent = templateMeta[t.id]?.icon ?? FileText;
-        
+
           return {
             ...t,
             icon: <IconComponent className="h-5 w-5" />,
@@ -86,52 +154,84 @@ export default function PromptTemplates({
     }
   };
 
-const handleAddNewTemplate = async () => {
-  if (isAddingTemplate) return; // Prevent multiple submissions
+  const handleGeneratePrompt = async () => {
+    if (!newTemplate.name || !newTemplate.description) {
+      alert("Please enter a name and description first.");
+      return;
+    }
 
-  setIsAddingTemplate(true);
+    setIsGeneratingPrompt(true);
 
-  const { name, description, prompt } = newTemplate;
-  if (!name || !prompt) {
-    setIsAddingTemplate(false);
-    return;
-  }
+    try {
+      const res = await fetch("/api/generate-template-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTemplate.name,
+          description: newTemplate.description,
+        }),
+      });
 
-  const id = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+      const data = await res.json();
 
-  // Check if a template with the same name already exists
-  if (templates.some((t) => t.id === id)) {
-    alert("A template with this name already exists.");
-    setIsAddingTemplate(false);
-    return;
-  }
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate prompt");
+      }
 
-  await fetch(`/api/prompts/${id}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, description, prompt }),
-  });
+      setNewTemplate({ ...newTemplate, prompt: data.prompt });
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong while generating the prompt.");
+    }
 
-  const IconComponent = templateMeta[id]?.icon ?? FileText;
-
-  const newEntry: PromptTemplate = {
-    id,
-    name,
-    description,
-    icon: <IconComponent className="h-5 w-5" />,
-    color: templateMeta[id]?.color ?? "bg-gray-500/10 text-gray-500",
-    isCustom: true,
+    setIsGeneratingPrompt(false);
   };
 
-  setTemplates((prev) => [...prev, newEntry]);
-  setNewTemplate({ name: "", description: "", prompt: "" });
-  setShowAddForm(false);
+  const handleAddNewTemplate = async () => {
+    if (isAddingTemplate) return;
 
-  setIsAddingTemplate(false); // Reset the flag after completion
-};
+    setIsAddingTemplate(true);
+
+    const { name, description, prompt } = newTemplate;
+    if (!name || !prompt) {
+      setIsAddingTemplate(false);
+      return;
+    }
+
+    const id = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    if (templates.some((t) => t.id === id)) {
+      alert("A template with this name already exists.");
+      setIsAddingTemplate(false);
+      return;
+    }
+
+    await fetch(`/api/prompts/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, prompt }),
+    });
+
+    const IconComponent = templateMeta[id]?.icon ?? FileText;
+
+    const newEntry: PromptTemplate = {
+      id,
+      name,
+      description,
+      icon: <IconComponent className="h-5 w-5" />,
+      color: templateMeta[id]?.color ?? "bg-gray-500/10 text-gray-500",
+      isCustom: true,
+    };
+
+    setTemplates((prev) => [...prev, newEntry]);
+    setNewTemplate({ name: "", description: "", prompt: "" });
+    setShowAddForm(false);
+
+    setIsAddingTemplate(false);
+  };
 
   return (
     <div>
@@ -163,17 +263,45 @@ const handleAddNewTemplate = async () => {
               className="w-full bg-gray-800 border-gray-700 p-2 rounded"
               value={newTemplate.description}
               onChange={(e) =>
-                setNewTemplate({ ...newTemplate, description: e.target.value })
+                setNewTemplate({
+                  ...newTemplate,
+                  description: e.target.value,
+                })
               }
             />
-            <Textarea
-              placeholder="Prompt content"
-              className="bg-gray-800 border-gray-700 min-h-[100px]"
-              value={newTemplate.prompt}
-              onChange={(e) =>
-                setNewTemplate({ ...newTemplate, prompt: e.target.value })
-              }
-            />
+            <div 
+              className="relative" 
+              ref={promptWrapperRef} 
+              onClick={() => console.log('🖱️ Wrapper DIV was clicked!')} 
+            >
+              <Textarea
+                placeholder="Prompt content"
+                className="bg-gray-800 border-gray-700 min-h-[100px] pr-32"
+                value={newTemplate.prompt}
+                onChange={(e) =>
+                  setNewTemplate({
+                    ...newTemplate,
+                    prompt: e.target.value,
+                  })
+                }
+                onFocus={() => console.log('[TEXTAREA] >>> Textarea focused <<<')}
+                onBlur={() => console.log('[TEXTAREA] <<< Textarea blurred >>>')}
+              />
+              {isEditingPrompt && (
+                <div className="absolute top-2 right-2 z-10">
+                  <Button
+                    variant="ghost"
+                    className="text-xs border border-gray-700"
+                    onClick={handleGeneratePrompt}
+                    onMouseDown={(e) => e.preventDefault()}
+                    type="button"
+                  >
+                    Generate Prompt
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"

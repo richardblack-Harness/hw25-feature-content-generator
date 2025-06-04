@@ -14,20 +14,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     keyBenefits,
     audience,
     isBeta,
+    releaseDate,
   } = req.body;
 
   const systemPrompt = `
-You are a helpful assistant that creates reusable prompt strings for AI-based content generation tools.
+You are a helpful assistant that creates reusable AI prompt templates for content generation tools.
 
-The template is intended to help generate content based on:
-- Template name: "${name}"
-- Description: "${description}"
-${featureName ? `- Feature name: "${featureName}"` : ""}
-${keyBenefits ? `- Key benefits: "${keyBenefits}"` : ""}
-${audience ? `- Audience: "${audience}"` : ""}
+The user has filled out a form to describe a new feature and wants to generate content using the following context:
+
+- Template type: ${name}
+- Purpose: ${description}
+${featureName ? `- Feature name: ${featureName}` : ""}
+${keyBenefits ? `- Key benefits: ${keyBenefits}` : ""}
+${audience ? `- Intended audience: ${audience}` : ""}
+${releaseDate ? `- Expected release date: ${releaseDate}` : ""}
 ${isBeta ? `- Note: This feature is currently in beta.` : ""}
 
-Return only the reusable prompt string, with no headers or labels. The prompt should guide the AI to create engaging, relevant content based on this context.
+Write a single reusable prompt that guides an AI model to generate appropriate content based on this context. 
+Do not include any headers, labels, or metadata — return only the raw prompt string itself.
 `.trim();
 
   try {

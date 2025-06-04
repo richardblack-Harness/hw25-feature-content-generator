@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,11 +37,9 @@ export default function FeatureForm() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamEmails, setTeamEmails] = useState("");
-  const [teamId, setTeamId] = useState<string | null>(null);
   const router = useRouter();
   const [showDialog, setShowDialog] = useState(false);
-
-  useEffect(() => setTeamId(uuidv4()), []);
+  const teamIdRef = useRef<string>(uuidv4());
 
   const validateInputs = () => {
     const errors: { [key: string]: string } = {};
@@ -120,7 +118,7 @@ export default function FeatureForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           team: {
-            id: teamId,
+            id: teamIdRef.current,
             name: teamName,
             emails: teamEmails.split(",").map((e) => e.trim()),
           },
@@ -169,7 +167,7 @@ export default function FeatureForm() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-screen-xl mx-auto w-full px-4">
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-6">
           <h2 className="text-2xl font-bold mb-6">Team Details</h2>

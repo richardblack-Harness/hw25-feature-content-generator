@@ -45,6 +45,12 @@ export default function FeatureForm() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const teamIdRef = useRef<string>(uuidv4());
   const router = useRouter();
+  const [isBeta, setIsBeta] = useState(false);
+
+  useEffect(() => {
+    // Automatically enable feature flag if Beta is selected
+    setFeatureFlagEnabled(isBeta);
+  }, [isBeta]);
 
   useEffect(() => {
     const newErrors: typeof errors = { ...errors };
@@ -266,16 +272,46 @@ export default function FeatureForm() {
         <CardContent className="p-6">
           <h2 className="text-2xl font-bold mb-6">Feature Details</h2>
           <div className="space-y-6">
-            <div>
-              <Label htmlFor="feature-name">Feature Name *</Label>
-              <Input
-                id="feature-name"
-                placeholder="Enter feature name"
-                className="mt-1 bg-gray-800 border-gray-700"
-                value={featureName}
-                onChange={(e) => setFeatureName(e.target.value)}
-                required
-              />
+            <div className="flex flex-col md:flex-row md:items-end md:gap-4">
+              <div className="flex-1">
+                <Label htmlFor="feature-name">Feature Name *</Label>
+                <Input
+                  id="feature-name"
+                  placeholder="Enter feature name"
+                  className="mt-1 bg-gray-800 border-gray-700"
+                  value={featureName}
+                  onChange={(e) => setFeatureName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="w-full md:w-[100px]">
+                <Label htmlFor="is-beta" className="block mb-1 text-sm">
+                  Beta?
+                </Label>
+                <div className="relative">
+                  <select
+                    id="is-beta"
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 appearance-none"
+                    value={isBeta ? "yes" : "no"}
+                    onChange={(e) => setIsBeta(e.target.value === "yes")}
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-white">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <Label htmlFor="feature-description">Feature Description*</Label>

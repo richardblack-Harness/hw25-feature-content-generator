@@ -37,3 +37,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom prose styling for markdown preview */
+.prose-sm h1, .prose h1 {
+  @apply mt-6 mb-3 text-2xl font-bold;
+}
+.prose-sm h2, .prose h2 {
+  @apply mt-5 mb-2 text-xl font-semibold;
+}
+.prose-sm h3, .prose h3 {
+  @apply mt-4 mb-2 text-lg font-semibold;
+}
+.prose-sm p, .prose p {
+  @apply mb-4;
+}
+/* Add more specific styling if needed for other elements like lists, blockquotes etc. */

@@ -7,7 +7,8 @@ import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Navbar from "@/components/navbar";
-import { Download, Archive } from "lucide-react";
+import { Download, Archive, Trash2Icon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Submission {
   id: string;
@@ -15,12 +16,16 @@ interface Submission {
     name: string;
   };
   timestamp: string;
-  generatedOutput: string;
-  selectedTemplates: { id: string; name: string }[];
+  selectedTemplates: {
+    id: string;
+    name: string;
+    generatedOutput?: string;
+  }[];
 }
 
 export default function SubmissionsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubmissions();
@@ -29,57 +34,40 @@ export default function SubmissionsPage() {
   const fetchSubmissions = async () => {
     const res = await fetch("/api/submissions");
     const data = await res.json();
-    data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    data.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
     setSubmissions(data);
   };
 
   const parseGeneratedOutput = (
-    output: string,
     templates: Submission["selectedTemplates"],
     featureName: string
   ) => {
-    const sections = output
-      .split(/^#\s+/gm)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  
-    const files: { name: string; content: string; title: string }[] = [];
-  
-    const templateMap = new Map(
-      templates.map((t) => [t.name.toLowerCase(), { id: t.id, name: t.name }])
-    );
-  
-    for (const raw of sections) {
-      const [titleLine, ...rest] = raw.split("\n");
-      const titleText = titleLine.trim();
-      const body = rest.join("\n").trim();
-  
-      let matched = [...templateMap.entries()].find(([key]) =>
-        titleText.toLowerCase() === key
-      );
-  
-      if (!matched) {
-        matched = [...templateMap.entries()].find(([key]) =>
-          titleText.toLowerCase().includes(key)
-        );
-      }
-  
-      const templateId = matched?.[1]?.id || `unknown-${Date.now()}`;
-      const templateName = matched?.[1]?.name || titleText || "unknown";
-  
-      const filename = `${featureName.toLowerCase().replace(/\s+/g, "-")}_${templateId}.md`;
-  
-      files.push({
-        name: filename,
-        content: `# ${titleText}\n\n${body}`,
-        title: templateName,
+    return templates
+      .filter((t) => !!t.generatedOutput)
+      .map((template) => {
+        const id = template.id;
+        const title =
+          template.name ||
+          id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const filename = `${featureName
+          .toLowerCase()
+          .replace(/\s+/g, "-")}_${id}.md`;
+
+        return {
+          name: filename,
+          content: template.generatedOutput!.trim(),
+          title,
+        };
       });
-    }
-  
-    return files;
   };
 
-  const handleDownloadAll = async (files: { name: string; content: string }[], zipName: string) => {
+  const handleDownloadAll = async (
+    files: { name: string; content: string }[],
+    zipName: string
+  ) => {
     const zip = new JSZip();
     files.forEach((file) => {
       zip.file(file.name, file.content);
@@ -95,14 +83,15 @@ export default function SubmissionsPage() {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/submissions/${id}`, {
+      setDeletingId(id);
+      await fetch(`/api/submissions/${id}`, {
         method: "DELETE",
       });
-
-      fetchSubmissions();      
-    } 
-    catch (err) {
+      fetchSubmissions();
+    } catch (err) {
       console.error("Failed to delete submission:", err);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -111,37 +100,49 @@ export default function SubmissionsPage() {
       <Navbar />
       <div className="container py-10 space-y-6">
         {submissions.map((submission) => {
-          const { id, feature, timestamp, generatedOutput, selectedTemplates } = submission;
+          const { id, feature, timestamp, selectedTemplates } = submission;
           const dateStr = format(new Date(timestamp), "MMMM do, yyyy");
-          const files = parseGeneratedOutput(generatedOutput, selectedTemplates, feature.name);
+          const files = parseGeneratedOutput(selectedTemplates, feature.name);
 
           return (
             <Card key={id} className="bg-gray-900 border border-gray-800 p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-xl font-semibold">{feature.name}</h2>
-                  <p className="text-sm text-gray-400">Submitted on {dateStr}</p>
+                  <p className="text-sm text-gray-400">
+                    Submitted on {dateStr}
+                  </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  className="text-red-500 hover:text-red-700"
-                  onClick={() => handleDeleteFiles(id)}
-                >
-                  Delete Submission
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    handleDownloadAll(
-                      files,
-                      `${feature.name.toLowerCase().replace(/\s+/g, "-")}-submission.zip`
-                    )
-                  }
-                >
-                  <Archive className="w-4 h-4 mr-1" />
-                  Download All
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleDownloadAll(
+                        files,
+                        `${feature.name
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")}-submission.zip`
+                      )
+                    }
+                  >
+                    <Archive className="w-4 h-4 mr-1" />
+                    Download All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => handleDeleteFiles(id)}
+                    title="Delete Submission"
+                    disabled={deletingId === id}
+                  >
+                    <Trash2Icon
+                      className={cn("h-4 w-4", {
+                        "animate-pulse": deletingId === id,
+                      })}
+                    />
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -151,12 +152,16 @@ export default function SubmissionsPage() {
                     className="bg-gray-800 border border-gray-700 p-4 flex flex-col justify-between"
                   >
                     <div className="flex justify-between items-start">
-                      <span className="text-white font-medium">{file.title}</span>
+                      <span className="text-white font-medium">
+                        {file.title}
+                      </span>
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => {
-                          const blob = new Blob([file.content], { type: "text/markdown;charset=utf-8" });
+                          const blob = new Blob([file.content], {
+                            type: "text/markdown;charset=utf-8",
+                          });
                           saveAs(blob, file.name);
                         }}
                       >

@@ -33,7 +33,7 @@ export default function FeatureForm() {
   const [competitorResources, setCompetitorResources] = useState("");
   const [demoVideo, setDemoVideo] = useState<File | null>(null);
   const [knownLimitations, setKnownLimitations] = useState("");
-  const [generatedContent, setGeneratedContent] = useState("");
+  const [generatedContent, setGeneratedContent] = useState<{ name: string; output: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamEmails, setTeamEmails] = useState("");
@@ -41,114 +41,59 @@ export default function FeatureForm() {
   const router = useRouter();
   const [showDialog, setShowDialog] = useState(false);
 
-  useEffect(() => {
-    setTeamId(uuidv4());
-  }, []);
+  useEffect(() => setTeamId(uuidv4()), []);
 
   const validateInputs = () => {
     const errors: { [key: string]: string } = {};
-
-    // If feature flag enabled is set to true then a feature flag must be provided. Additionally, the feature flag must be in all caps and one word, no spaces.
     if (featureFlagEnabled && !featureFlag.trim()) {
       errors.featureFlag = "Please provide a feature flag.";
     }
-
     if (featureFlag && !/^[A-Z_]+$/.test(featureFlag)) {
       errors.featureFlag = "Feature flag must be in all caps and one word, no spaces.";
     }
-    
-    // The email can be empty, but if it isn't, it must be a valid email address
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (teamEmails.trim() && !teamEmails.match(emailRegex)) {
-      errors.teamEmails = "Please enter a valid email address for team emails.";
-    } 
-    
+      errors.teamEmails = "Please enter a valid email address.";
+    }
     return errors;
   };
 
   const requiredFields = () => {
     for (const template of selectedTemplates) {
       if (template.id === "se_handover" && (!realWorldUseCase.trim() || !competitorResources.trim())) {
-        // Improve error message to point to which specific fields are missing
-        throw new Error("Please fill in the required fields: Real World Use Case and Competitor Resources.");
+        throw new Error("SE Handover requires Real World Use Case and Competitor Resources.");
       }
     }
-    console.log(selectedTemplates);
-    return;
-  }
+  };
 
   const handleGenerateContent = async () => {
-    if (!featureName.trim() || !featureDescription.trim() || selectedTemplates.length === 0) {
-      alert("Please fill in the required fields: Feature Name, Description, and at least one template.");
+    if (!featureName || !featureDescription || selectedTemplates.length === 0) {
+      alert("Feature Name, Description and a Template are required.");
       return;
     }
 
     const errors = validateInputs();
     if (Object.keys(errors).length > 0) {
-      alert("Please fix the following errors:\n" + Object.values(errors).join("\n"));
+      alert(Object.values(errors).join("\n"));
       return;
     }
 
     try {
       requiredFields();
-    } catch(err) {
+    } catch (err) {
       alert(err);
       return;
     }
 
     setIsGenerating(true);
-    setGeneratedContent("");
 
     try {
-      const templatesText = selectedTemplates
-        .map((t) => `- ${t.name}: ${t.description}`)
-        .join("\n");
-
-      const prompt = `
-        Generate content for a new Harness feature with the following details:
-
-        Feature Name: ${featureName}
-        Feature Description: ${featureDescription}
-        Key Benefits: ${keyBenefits || "Not specified"}
-        Feature Flag: ${featureFlagEnabled ? featureFlag || "Enabled, but no ID specified" : "Not enabled"}
-        Release Version: ${releaseVersion || "Not specified"}
-        Release Date: ${releaseDate || "Not specified"}
-        Real-world Use Case: ${realWorldUseCase || "Not specified"}
-        Competitor Resources: ${competitorResources || "Not specified"}
-        Known Limitations: ${knownLimitations || "None provided"}
-        Demo Video: ${demoVideo ? demoVideo.name : "No video uploaded"}
-
-        Content should be generated for the following templates:
-        ${templatesText}
-
-        Additional Context: ${contextPrompt || "None provided"}
-
-        Please format the output with clear headings for each template type.
-      `;
-
-      const response = await fetch("/api/generate-content", {
+      const res = await fetch("/api/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate content");
-      }
-
-      setGeneratedContent(data.text);
-
-      const submissionData = {
-        team: {
-          id: teamId,
-          name: teamName,
-          emails: teamEmails.split(",").map((email) => email.trim()),
-        },
-        feature: {
-          name: featureName,
-          description: featureDescription,
+        body: JSON.stringify({
+          featureName,
+          featureDescription,
           keyBenefits,
           featureFlag: featureFlagEnabled ? featureFlag : "",
           releaseVersion,
@@ -157,24 +102,47 @@ export default function FeatureForm() {
           competitorResources,
           knownLimitations,
           demoVideoName: demoVideo?.name || null,
-        },
-        selectedTemplates,
-        contextPrompt,
-        generatedOutput: data.text,
-        timestamp: new Date().toISOString(),
-      };
+          contextPrompt,
+          templates: selectedTemplates,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate content");
+
+      const enrichedTemplates = selectedTemplates.map((template) => ({
+        ...template,
+        generatedOutput: data.outputs?.[template.name] || "Missing content",
+      }));
 
       const saveRes = await fetch("/api/save-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submissionData),
+        body: JSON.stringify({
+          team: {
+            id: teamId,
+            name: teamName,
+            emails: teamEmails.split(",").map((e) => e.trim()),
+          },
+          feature: {
+            name: featureName,
+            description: featureDescription,
+            keyBenefits,
+            featureFlag: featureFlagEnabled ? featureFlag : "",
+            releaseVersion,
+            releaseDate,
+            realWorldUseCase,
+            competitorResources,
+            knownLimitations,
+            demoVideoName: demoVideo?.name || null,
+          },
+          selectedTemplates: enrichedTemplates,
+          contextPrompt,
+          timestamp: new Date().toISOString(),
+        }),
       });
 
-      if (!saveRes.ok) {
-        const errData = await saveRes.json();
-        throw new Error(errData.error || "Failed to save submission");
-      }
-
+      if (!saveRes.ok) throw new Error("Failed to save submission");
       setShowDialog(true);
       setFeatureName("");
       setFeatureDescription("");
@@ -191,10 +159,10 @@ export default function FeatureForm() {
       setSelectedTemplates([]);
       setTeamName("");
       setTeamEmails("");
-      setGeneratedContent("");
-    } catch (error) {
-      console.error("Error generating content:", error);
-      setGeneratedContent("An error occurred while generating content. Please try again.");
+      setGeneratedContent([]);
+    } catch (err) {
+      console.error(err);
+      setGeneratedContent([{ name: "Error", output: "An error occurred. Try again." }]);
     } finally {
       setIsGenerating(false);
     }
@@ -303,18 +271,26 @@ export default function FeatureForm() {
         </CardContent>
       </Card>
 
-      {generatedContent && (
-        <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Generated Content</h2>
-            <div className="bg-gray-800 p-4 rounded-md whitespace-pre-wrap">{generatedContent}</div>
-            <div className="flex justify-end mt-4">
-              <Button variant="outline" className="mr-2">Copy</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">Save</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {generatedContent.length > 0 && ( // Check if there's actually content
+  <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
+    <CardContent className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Generated Content</h2>
+      {generatedContent.map((item, index) => (
+        <div key={index} className="mb-6"> {/* Add a key for each item in the list */}
+          <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
+          <div className="bg-gray-800 p-4 rounded-md whitespace-pre-wrap">
+            {item.output}
+          </div>
+        </div>
+      ))}
+      <div className="flex justify-end mt-4">
+        {/* Your Copy and Save buttons can remain here, or you might want them per item */}
+        <Button variant="outline" className="mr-2">Copy All</Button> {/* Example */}
+        <Button className="bg-blue-600 hover:bg-blue-700">Save All</Button> {/* Example */}
+      </div>
+    </CardContent>
+  </Card>
+)}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>

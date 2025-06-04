@@ -20,8 +20,13 @@ if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
   throw new Error("❌ GCP credentials not found. Set GCP_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS.");
 }
 
+if (!process.env.BUCKET_NAME) {
+  console.warn("⚠️ BUCKET_NAME is not set. Uploads may fail.");
+}
+
 export const bucket = storage.bucket(process.env.BUCKET_NAME || "");
 
-console.log("✅ Storage initialized with bucket:", bucket.name);
+console.log("Bucket:", process.env.BUCKET_NAME);
+console.log("Key length:", process.env.GCP_SERVICE_ACCOUNT_KEY?.length);
 
 export { storage };

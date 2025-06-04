@@ -66,6 +66,17 @@ export default function FeatureForm() {
     return errors;
   };
 
+  const requiredFields = () => {
+    for (const template of selectedTemplates) {
+      if (template.id === "se_handover" && (!realWorldUseCase.trim() || !competitorResources.trim())) {
+        // Improve error message to point to which specific fields are missing
+        throw new Error("Please fill in the required fields: Real World Use Case and Competitor Resources.");
+      }
+    }
+    console.log(selectedTemplates);
+    return;
+  }
+
   const handleGenerateContent = async () => {
     if (!featureName.trim() || !featureDescription.trim() || selectedTemplates.length === 0) {
       alert("Please fill in the required fields: Feature Name, Description, and at least one template.");
@@ -75,6 +86,13 @@ export default function FeatureForm() {
     const errors = validateInputs();
     if (Object.keys(errors).length > 0) {
       alert("Please fix the following errors:\n" + Object.values(errors).join("\n"));
+      return;
+    }
+
+    try {
+      requiredFields();
+    } catch(err) {
+      alert(err);
       return;
     }
 

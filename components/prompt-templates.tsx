@@ -7,15 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { templateMeta } from "@/data/icons";
 import { FileText, Plus } from "lucide-react";
 import type { PromptTemplate } from "@/types/prompt";
+import { cn } from "@/lib/utils";
 
 interface PromptTemplatesProps {
   selectedTemplates: PromptTemplate[];
   onSelectionChange: (templates: PromptTemplate[]) => void;
+  featureName?: string;
+  keyBenefits?: string;
+  audience?: string;
+  isBeta?: boolean;
 }
 
 export default function PromptTemplates({
   selectedTemplates,
   onSelectionChange,
+  featureName,
+  keyBenefits,
+  audience,
+  isBeta,
 }: PromptTemplatesProps) {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [newTemplate, setNewTemplate] = useState({
@@ -38,9 +47,7 @@ export default function PromptTemplates({
   useEffect(() => {
     requestAnimationFrame(() => {
       const wrapper = promptWrapperRef.current;
-      console.log('[Debug] Inside requestAnimationFrame. promptWrapperRef.current:', wrapper);
       if (!wrapper) {
-        console.error('[Debug] promptWrapperRef.current is null or undefined inside requestAnimationFrame. Event listeners NOT attached.');
         return;
       }
   
@@ -75,17 +82,16 @@ export default function PromptTemplates({
     if (!wrapper) return;
 
     const handleFocusIn = () => {
+      console.log('[PromptTemplates Focus] >>> Prompt area wrapper FOCUSED <<<');
       setIsEditingPrompt(true);
-      console.log('[EFFECT] Wrapper focusin - isEditingPrompt: true');
     };
 
     const handleFocusOut = (e: FocusEvent) => {
-      // Check if focus is still within the wrapper (e.g., moved to the button)
       if (!wrapper.contains(e.relatedTarget as Node)) {
+        console.log('[PromptTemplates Focus] <<< Prompt area wrapper BLURRED (focus left wrapper) <<<');
         setIsEditingPrompt(false);
-        console.log('[EFFECT] Wrapper focusout - isEditingPrompt: false (focus left wrapper)');
       } else {
-        console.log('[EFFECT] Wrapper focusout - focus moved within wrapper');
+        console.log('[PromptTemplates Focus] --- Prompt area wrapper focus changed within wrapper ---');
       }
     };
 
@@ -96,7 +102,7 @@ export default function PromptTemplates({
       wrapper.removeEventListener("focusin", handleFocusIn);
       wrapper.removeEventListener("focusout", handleFocusOut);
     };
-  }, []);
+  }, [showAddForm]);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -156,12 +162,10 @@ export default function PromptTemplates({
 
   const handleGeneratePrompt = async () => {
     if (!newTemplate.name || !newTemplate.description) {
-      alert("Please enter a name and description first.");
+      alert("Please enter a template name and description first.");
       return;
     }
-
     setIsGeneratingPrompt(true);
-
     try {
       const res = await fetch("/api/generate-template-prompt", {
         method: "POST",
@@ -169,22 +173,51 @@ export default function PromptTemplates({
         body: JSON.stringify({
           name: newTemplate.name,
           description: newTemplate.description,
+          featureName, // Now using the prop
+          keyBenefits, // Now using the prop
+          audience,    // Now using the prop
+          isBeta,      // Now using the prop
         }),
       });
-
-      const data = await res.json();
-
+      
       if (!res.ok) {
-        throw new Error(data.error || "Failed to generate prompt");
+        const errorData = await res.json().catch(() => ({ error: "Failed to generate prompt and parse error."}));
+        throw new Error(errorData.error || "Failed to generate prompt");
       }
-
-      setNewTemplate({ ...newTemplate, prompt: data.prompt });
+      const data = await res.json();
+      setNewTemplate((prev) => ({ ...prev, prompt: data.prompt }));
     } catch (err) {
-      console.error(err);
-      alert("Something went wrong while generating the prompt.");
+      console.error("Prompt generation failed in PromptTemplates:", err);
+      alert(err instanceof Error ? err.message : "Unable to generate prompt. Please try again.");
+    } finally {
+      setIsGeneratingPrompt(false);
     }
+  };
 
-    setIsGeneratingPrompt(false);
+  const handleGenerateNewTemplatePrompt = async () => {
+    if (!newTemplate.name || !newTemplate.description) {
+      alert("Please enter a template name and description first to generate a prompt.");
+      return;
+    }
+    setIsGeneratingPrompt(true);
+    try {
+      const res = await fetch("/api/generate-template-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTemplate.name, description: newTemplate.description }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Failed to generate prompt and parse error." }));
+        throw new Error(errorData.error || "Failed to generate prompt");
+      }
+      const data = await res.json();
+      setNewTemplate(prev => ({ ...prev, prompt: data.prompt }));
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+      alert(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
   };
 
   const handleAddNewTemplate = async () => {
@@ -284,20 +317,27 @@ export default function PromptTemplates({
                     prompt: e.target.value,
                   })
                 }
-                onFocus={() => console.log('[TEXTAREA] >>> Textarea focused <<<')}
-                onBlur={() => console.log('[TEXTAREA] <<< Textarea blurred >>>')}
               />
               {isEditingPrompt && (
                 <div className="absolute top-2 right-2 z-10">
                   <Button
-                    variant="ghost"
-                    className="text-xs border border-gray-700"
-                    onClick={handleGeneratePrompt}
-                    onMouseDown={(e) => e.preventDefault()}
-                    type="button"
-                  >
-                    Generate Prompt
-                  </Button>
+  variant="ghost"
+  size="sm"
+  className={cn(
+    "absolute top-2 right-2 text-xs px-3 py-1 border rounded-md transition-all duration-300 overflow-hidden",
+    "border-blue-500 text-blue-400 bg-gray-800 hover:bg-gray-700",
+    "hover:text-white hover:border-white",
+    "shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.8)]",
+    "disabled:opacity-50 disabled:cursor-not-allowed",
+    isGeneratingPrompt ? "cursor-wait" : ""
+  )}
+  onClick={handleGenerateNewTemplatePrompt}
+  disabled={isGeneratingPrompt}
+  onMouseDown={(e) => e.preventDefault()}
+  type="button"
+>
+  {isGeneratingPrompt ? "Generating..." : "Generate Prompt"}
+</Button>
                 </div>
               )}
             </div>

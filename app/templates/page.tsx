@@ -436,16 +436,23 @@ export default function TemplatesPage() {
                 />
                 {isPromptAreaActive && (
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 text-xs border border-gray-700 bg-gray-800 hover:bg-gray-700"
-                    onClick={handleGenerateNewTemplatePrompt}
-                    disabled={isGeneratingPrompt}
-                    onMouseDown={(e) => e.preventDefault()} 
-                    type="button"
-                  >
-                    {isGeneratingPrompt ? "Generating..." : "Generate Prompt"}
-                  </Button>
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "absolute top-2 right-2 text-xs px-3 py-1 border rounded-md transition-all duration-300 overflow-hidden",
+                    "border-blue-500 text-blue-400 bg-gray-800 hover:bg-gray-700",
+                    "hover:text-white hover:border-white",
+                    "shadow-[0_0_10px_rgba(59,130,246,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.8)]",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    isGeneratingPrompt ? "cursor-wait" : ""
+                  )}
+                  onClick={handleGenerateNewTemplatePrompt}
+                  disabled={isGeneratingPrompt}
+                  onMouseDown={(e) => e.preventDefault()}
+                  type="button"
+                >
+                  {isGeneratingPrompt ? "Generating..." : "Generate Prompt"}
+                </Button>
                 )}
               </div>
               <div className="flex justify-end space-x-2">

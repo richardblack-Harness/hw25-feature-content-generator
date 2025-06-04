@@ -7,16 +7,28 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { name, description } = req.body;
-  const systemPrompt = `
-You are a helpful assistant that creates prompt templates for AI-based content generation tools.
+  const {
+    name,
+    description,
+    featureName,
+    keyBenefits,
+    audience,
+    isBeta,
+  } = req.body;
 
-Generate a reusable prompt string based on the following:
+  const systemPrompt = `
+You are a helpful assistant that creates reusable prompt strings for AI-based content generation tools.
+
+The template is intended to help generate content based on:
 - Template name: "${name}"
 - Description: "${description}"
+${featureName ? `- Feature name: "${featureName}"` : ""}
+${keyBenefits ? `- Key benefits: "${keyBenefits}"` : ""}
+${audience ? `- Audience: "${audience}"` : ""}
+${isBeta ? `- Note: This feature is currently in beta.` : ""}
 
-The prompt should include instructions for the AI to generate useful content of that type, define tone/style if applicable, and guide structure if helpful.
-  `.trim();
+Return only the reusable prompt string, with no headers or labels. The prompt should guide the AI to create engaging, relevant content based on this context.
+`.trim();
 
   try {
     const completion = await openai.chat.completions.create({

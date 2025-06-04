@@ -99,6 +99,7 @@ export default function SubmissionsPage() {
     <>
       <Navbar />
       <div className="container py-10 space-y-6">
+        <h1 className="text-3xl font-bold">Feature Content Submissions</h1>
         {submissions.map((submission) => {
           const { id, feature, timestamp, selectedTemplates } = submission;
           const dateStr = format(new Date(timestamp), "MMMM do, yyyy");
@@ -145,13 +146,13 @@ export default function SubmissionsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
                 {files.map((file) => (
                   <Card
                     key={file.name}
-                    className="bg-gray-800 border border-gray-700 p-4 flex flex-col justify-between"
+                    className="bg-gray-800 border border-gray-700 px-3 py-2 flex items-center justify-between h-[50px]"
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex items-center justify-between w-full">
                       <span className="text-white font-medium">
                         {file.title}
                       </span>

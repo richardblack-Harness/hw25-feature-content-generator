@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,23 @@ export default function FeatureForm() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamEmails, setTeamEmails] = useState("");
+  const [emailWarning, setEmailWarning] = useState("");
+  const [emailError, setEmailError] = useState("");
   const router = useRouter();
   const [showDialog, setShowDialog] = useState(false);
   const teamIdRef = useRef<string>(uuidv4());
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  useEffect(() => {
+    const emails = teamEmails.split(",").map(e => e.trim());
+    const invalidEmail = emails.find(email => email && !emailRegex.test(email));
+    if (invalidEmail) {
+      setEmailWarning(`Invalid email format: ${invalidEmail}`);
+    } else {
+      setEmailWarning("");
+    }
+  }, [teamEmails]);
 
   const validateInputs = () => {
     const errors: { [key: string]: string } = {};
@@ -49,9 +63,10 @@ export default function FeatureForm() {
     if (featureFlag && !/^[A-Z_]+$/.test(featureFlag)) {
       errors.featureFlag = "Feature flag must be in all caps and one word, no spaces.";
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (teamEmails.trim() && !teamEmails.match(emailRegex)) {
-      errors.teamEmails = "Please enter a valid email address.";
+    const emails = teamEmails.split(",").map(e => e.trim());
+    const invalidEmail = emails.find(email => email && !emailRegex.test(email));
+    if (teamEmails.trim() && invalidEmail) {
+      errors.teamEmails = `Invalid email: ${invalidEmail}`;
     }
     return errors;
   };
@@ -179,6 +194,8 @@ export default function FeatureForm() {
             <div>
               <Label htmlFor="team-emails">Team Emails</Label>
               <Textarea id="team-emails" placeholder="Comma-separated email addresses" className="mt-1 bg-gray-800 border-gray-700 min-h-[60px]" value={teamEmails} onChange={(e) => setTeamEmails(e.target.value)} />
+              {emailWarning && <p className="text-red-500 mt-1">{emailWarning}</p>}
+              {emailError && <p className="text-red-500 mt-1">{emailError}</p>}
             </div>
           </div>
         </CardContent>

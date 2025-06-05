@@ -9,11 +9,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const submission = req.body;
 
-    if (!submission?.team?.id) {
-      return res.status(400).json({ error: 'Missing team ID in submission' });
+    if(!submission?.feature?.name) {
+      return res.status(400).json({ error: 'Missing feature name in submission' });
     }
 
-    const filePath = `teams/${submission.team.id}/submission.json`;
+    const filePath = `teams/${submission.feature.name}` + Math.random() + `/submission.json`;
     const file = bucket.file(filePath);
 
     await file.save(JSON.stringify(submission, null, 2), {

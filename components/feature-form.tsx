@@ -86,6 +86,7 @@ export default function FeatureForm() {
   };
 
   const handleGenerateContent = async () => {
+    setGeneratedContent([]);
     const validationErrors = validateInputs();
     if (!featureName || !featureDescription || selectedTemplates.length === 0) {
       alert("Feature Name, Description and a Template are required.");
@@ -136,6 +137,11 @@ export default function FeatureForm() {
         generatedOutput: data.outputs?.[template.name] || "Missing content",
       }));
 
+      // Create a for loop that iterates over enrichedTemplates
+      for (const template of enrichedTemplates) {
+        setGeneratedContent((prev) => [...prev, { name: template.name, output: template.generatedOutput }]); // Update the generatedContent state with each template.generatedOutput
+      }
+
       const saveRes = await fetch("/api/save-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,7 +179,6 @@ export default function FeatureForm() {
       setKnownLimitations("");
       setContextPrompt("");
       setSelectedTemplates([]);
-      setGeneratedContent([]);
     } catch (err) {
       console.error(err);
       setGeneratedContent([

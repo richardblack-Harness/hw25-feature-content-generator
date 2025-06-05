@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Encode the deletefile URL
           encodeURIComponent(deleteFile);
 
-          console.log(deleteFile);
           // Delete the delete folder
           await bucket.file(deleteFile).delete({
             ignoreNotFound: true,

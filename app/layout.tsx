@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Harness Feature Content Generator",
+  title: "Harness Content Catapult",
   description: "Generate content for upcoming Harness features",
   generator: "v0.dev",
   icons: {

@@ -1,4 +1,4 @@
-# Feature Content Generator
+# Harness Content Catapult
 This project is a Next.js application using TypeScript and Tailwind CSS. It leverages various Radix UI components and other modern libraries.
 
 ## Getting Started

@@ -80,7 +80,7 @@ export default function Home() {
           />
           <div className="flex flex-col w-full md:w-auto items-center justify-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center mb-4">
-              Feature Content Generator
+              Harness Content Catapult
             </h1>
             <p className="text-lg text-center text-gray-400 max-w-3xl">
               Create compelling content for upcoming Harness features using
